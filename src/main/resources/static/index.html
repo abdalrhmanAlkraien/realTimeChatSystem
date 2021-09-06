@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- prevent extraneous favicon requests -->
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+    <script src="client.js"></script>
+</head>
+
+<body>
+
+<div id="videos" class="videos">
+
+    <div id="localVideoContainer" class="videoContainer">
+        <video id="localVideo" autoplay muted  width="200px" ></video>
+    </div>
+
+    <!-- Remote videos get appended here -->
+
+</div>
+
+<div>
+    <input id="messageInput" type="text"  value="Mickey"  placeholder="message">
+    <button type="button" class="btn btn-primary" onclick='sendMessage()'>SEND</button>
+</div>
+
+<script type="text/javascript">
+    start();
+</script>
+
+</body>
+
+</html>
