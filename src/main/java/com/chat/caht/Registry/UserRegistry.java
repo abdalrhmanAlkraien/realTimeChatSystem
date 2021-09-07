@@ -2,8 +2,10 @@ package com.chat.caht.Registry;
 
 import org.springframework.web.socket.WebSocketSession;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class UserRegistry {
     private Map<String,UserSession> mapWebSocketUserName=new ConcurrentHashMap<>();
@@ -37,6 +39,7 @@ public class UserRegistry {
     public void addUserRegister(UserSession userSession){
         mapWebSocketSession.put(userSession.getSession().getId(),userSession);
         mapWebSocketUserName.put(userSession.getUserName(),userSession);
+
     }
 
     public void removeUserRegister(UserSession userSession)
@@ -46,5 +49,10 @@ public class UserRegistry {
 
     }
 
+
+    public List<String> getAllUserSessions(){
+      List<String >users=  mapWebSocketSession.values().stream().map(value->value.getUserName()).collect(Collectors.toList());
+       return users;
+    }
 
 }

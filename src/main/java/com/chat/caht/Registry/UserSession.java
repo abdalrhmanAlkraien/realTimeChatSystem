@@ -19,6 +19,7 @@ public class UserSession {
         this.id = id;
         this.userName = userName;
         this.roomSessions=new ArrayList<>();
+        this.sdpOffer=null;
     }
 
     public String getId() {

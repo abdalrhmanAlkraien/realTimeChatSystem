@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class HandlingMessage extends TextWebSocketHandler {
     private static final Gson gson = new GsonBuilder().create();
@@ -63,7 +64,12 @@ public class HandlingMessage extends TextWebSocketHandler {
             case REGISTER:
                 System.out.println("register new Session to System: ".concat(session.getId()));
                 registerNewUser(session,json);
-                
+                for (WebSocketSession webSocketSession : webSocketSessions) {
+                    if (webSocketSession.isOpen()) {
+                        System.out.println(message.getPayload());
+                        webSocketSession.sendMessage(message);
+                    }
+                }
                 break;
             case OFFER:
                 System.out.println("create new Offer");
@@ -153,6 +159,14 @@ public class HandlingMessage extends TextWebSocketHandler {
             case LEAVE:
                 System.out.println("the session leave from system: ".concat(session.getId()));
                 break;
+            default:
+                System.out.println("ok");
+                for (WebSocketSession webSocketSession : webSocketSessions) {
+                    if (webSocketSession.isOpen()) {
+                        System.out.println(message.getPayload());
+                        webSocketSession.sendMessage(message);
+                    }
+                }
         }
 
 
@@ -208,4 +222,9 @@ public class HandlingMessage extends TextWebSocketHandler {
     public void createOffer(){
 
     }
+
+    public List<String> getAllUser(){
+        return userRegistry.getAllUserSessions();
+    }
+
 }

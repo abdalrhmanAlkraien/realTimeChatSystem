@@ -6,7 +6,7 @@ var localStream;
 var serverConnection;
 var peerConnections = {}; // key is uuid, values are peer connection object and user defined display name string
 var dataChannel;
-
+var usersListData = [];
 var peerConnectionConfig = {
     'iceServers': [
         { 'urls': 'stun:stun.stunprotocol.org:3478' },
@@ -15,6 +15,7 @@ var peerConnectionConfig = {
 };
 
 function start() {
+console.log("hi");
     localUuid = createUUID();
 
     // check if "&displayName=xxx" is appended to URL, otherwise alert user to populate
@@ -43,10 +44,13 @@ function start() {
             // set up websocket and message all existing clients
             .then(() => {
                 serverConnection = new WebSocket("ws://localhost:9022/socket");
+                //step 2 recieve message from server
                 serverConnection.onmessage = gotMessageFromServer;
+                //step 1 send to server
                 serverConnection.onopen = event => {
                     serverConnection.send(JSON.stringify({ 'displayName': localDisplayName, 'uuid': localUuid, 'dest': 'all','type':'register',
                     'id':localUuid,'userName':localDisplayName}));
+                    // add it here
                 }
             }).catch(errorHandler);
 
@@ -92,8 +96,12 @@ function gotMessageFromServer(message) {
 
     if (signal.displayName && signal.dest == 'all') {
         // set up peer connection object for a newcomer peer
+        console.log('here duaa');
         setUpPeer(peerUuid, signal.displayName);
-        serverConnection.send(JSON.stringify({ 'displayName': localDisplayName, 'uuid': localUuid, 'dest': peerUuid }));
+        serverConnection.send(JSON.stringify({ 'displayName': localDisplayName, 'uuid': localUuid, 'dest': peerUuid,'type':'ok' }));
+
+//       serverConnection.send(JSON.stringify({ 'displayName': localDisplayName, 'uuid': localUuid, 'dest': 'all','type':'register',
+//                    'id':localUuid,'userName':localDisplayName}));
 
     } else if (signal.displayName && signal.dest == localUuid) {
         // initiate call if we are the newcomer peer
@@ -110,10 +118,29 @@ function gotMessageFromServer(message) {
     } else if (signal.ice) {
         peerConnections[peerUuid].pc.addIceCandidate(new RTCIceCandidate(signal.ice)).catch(errorHandler);
     }
+
+//
+//  if(peerConnections.length>0){
+//  console.log('hi')
+//   setUpPeer(peerUuid, signal.displayName, true);
+//  }
+
 }
 
 function setUpPeer(peerUuid, displayName, initCall = false) {
+console.log('setUpPeer')
     peerConnections[peerUuid] = { 'displayName': displayName, 'pc': new RTCPeerConnection(peerConnectionConfig)}
+    document.getElementById('usersList').appendChild(makeLabel(peerConnections[peerUuid].displayName));
+    console.log(peerConnections[peerUuid].displayName);
+    usersListData.push(peerConnections[peerUuid].displayName);
+//    if(usersList.length > 1){
+    for(let i=0 ; i < usersList.length; i++ ){
+       console.log(usersList[i]);
+       }
+//       }
+
+
+
 //     reliable : true
 // });
 // dataChannel.onerror = function(error) {
@@ -209,7 +236,7 @@ function setUpPeer(peerUuid, displayName, initCall = false) {
 
 function gotIceCandidate(event, peerUuid) {
     if (event.candidate != null) {
-        serverConnection.send(JSON.stringify({ 'ice': event.candidate, 'uuid': localUuid, 'dest': peerUuid }));
+        serverConnection.send(JSON.stringify({ 'ice': event.candidate, 'uuid': localUuid, 'dest': peerUuid ,'type':'candidate'}));
     }
 }
 
@@ -289,4 +316,38 @@ function createUUID() {
     }
 
     return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+}
+
+/*
+var req = new XMLHttpRequest();
+req.responseType = 'json';
+req.open('GET', url, true);
+*/
+function loadUsers(){
+const xhttp = new XMLHttpRequest();
+xhttp.responseType = 'json';
+  xhttp.onload = function() {
+//    document.getElementById("usersList").innerHTML = this.responseText;
+   var jsonResponse = this.response;
+
+//usersListData = this.responseText;
+console.log('usersListData', usersListData);
+//showUserList(usersListData);
+//        document.getElementById("usersList").appendChild(makeLabel(localDisplayName));
+  }
+  xhttp.open("GET", "http://localhost:9022/api/getAllUser");
+    xhttp.send();
+
+}
+
+function showUserList(usersListData){
+//console.log(usersListData.length());
+console.log(usersListData);
+//usersListData.forEach(element => console.log(element));
+
+for(let i=0; i<usersListData.length; i++){
+console.log("i", i)
+ document.getElementById("usersList").appendChild(makeLabel(usersListData[i]));
+ console.log("typeof", typeof(usersListData))
+}
 }
