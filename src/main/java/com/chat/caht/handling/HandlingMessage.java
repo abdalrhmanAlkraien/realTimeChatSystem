@@ -1,12 +1,11 @@
 package com.chat.caht.handling;
 
+import com.chat.caht.Registry.ConnectMessage;
 import com.chat.caht.Registry.RoomSession;
 import com.chat.caht.Registry.UserRegistry;
 import com.chat.caht.Registry.UserSession;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
+import com.google.gson.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -14,6 +13,7 @@ import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import java.beans.Encoder;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,10 +26,13 @@ public class HandlingMessage extends TextWebSocketHandler {
     private static final Gson gson = new GsonBuilder().create();
     private List<WebSocketSession> webSocketSessions=new ArrayList<>();
     private static final String REGISTER="register";
+    private static final String CONNECT="connect";
+
     private static final String LEAVE="leave";
     private static final String MESSAGE="message";
     private static final String OFFER="offer";
     private static final String ANSWER="answer";
+
     List<Long> randomRoomNumber =new ArrayList<>();
 
 
@@ -51,6 +54,15 @@ public class HandlingMessage extends TextWebSocketHandler {
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         JsonObject json=gson.fromJson(message.getPayload(),JsonObject.class);
 
+
+//        for (WebSocketSession webSocketSession : webSocketSessions) {
+//            synchronized(webSocketSession) {
+//            if (webSocketSession.isOpen()) {
+//                System.out.println(message.getPayload());
+//                webSocketSession.sendMessage(message);
+//            }}
+//        }
+
         UserSession userSession=userRegistry.findUserBySessionId(session);
         if(userSession!=null)
         {
@@ -64,12 +76,50 @@ public class HandlingMessage extends TextWebSocketHandler {
             case REGISTER:
                 System.out.println("register new Session to System: ".concat(session.getId()));
                 registerNewUser(session,json);
-                for (WebSocketSession webSocketSession : webSocketSessions) {
-                    if (webSocketSession.isOpen()) {
-                        System.out.println(message.getPayload());
-                        webSocketSession.sendMessage(message);
-                    }
+                break;
+            case CONNECT:
+                  JsonArray usersToConnect= json.get("dest").getAsJsonArray();
+//                System.out.println(usersToConnect);
+                ArrayList<UserSession> userSessionsList = new ArrayList<>();
+
+                for (JsonElement e:usersToConnect  ) {
+                    if(userRegistry.isUserSessionExist(e.getAsString())){
+                    UserSession user = userRegistry.findUserByUserName(e.getAsString());
+                    userSessionsList.add(user);}
                 }
+
+
+//                System.out.println(userSessionsList);
+//                System.out.println(message.getPayload());
+//                System.out.println("connect with users ");
+
+
+
+                 for (UserSession userSessionToSend : userSessionsList) {
+                    synchronized(userSessionToSend.getSession()) {
+                    if (userSessionToSend.getSession().isOpen()) {
+//                        System.out.println(message.getPayload());
+                        ConnectMessage connectMessage = new ConnectMessage();
+                        connectMessage.setDisplayName(userSessionToSend.getUserName());
+                        connectMessage.setUuid(userSessionToSend.getId());
+                        connectMessage.setDest(json.get("displayName").getAsString());
+                        ObjectMapper mapper = new ObjectMapper();
+                        String json2 = mapper.writeValueAsString(connectMessage);
+                        System.out.println(json2);
+                        session.sendMessage(new TextMessage(json2));
+                    }}
+                }
+
+
+
+
+//                for (WebSocketSession webSocketSession : webSocketSessions) {
+//                synchronized(webSocketSession) {
+//                if (webSocketSession.isOpen()) {
+//                    System.out.println(message.getPayload());
+//                    webSocketSession.sendMessage(message);
+//                }}
+//                }
                 break;
             case OFFER:
                 System.out.println("create new Offer");
@@ -160,13 +210,13 @@ public class HandlingMessage extends TextWebSocketHandler {
                 System.out.println("the session leave from system: ".concat(session.getId()));
                 break;
             default:
-                System.out.println("ok");
-                for (WebSocketSession webSocketSession : webSocketSessions) {
-                    if (webSocketSession.isOpen()) {
-                        System.out.println(message.getPayload());
-                        webSocketSession.sendMessage(message);
-                    }
-                }
+          for (WebSocketSession webSocketSession : webSocketSessions) {
+            synchronized(webSocketSession) {
+            if (webSocketSession.isOpen()) {
+                System.out.println(message.getPayload());
+                webSocketSession.sendMessage(message);
+            }}
+        }
         }
 
 
@@ -202,21 +252,22 @@ public class HandlingMessage extends TextWebSocketHandler {
 
 
     private RoomSession createRoom(UserSession caller,JsonObject json, Long roomId,List<UserSession> userSessions){
+        RoomSession room=null;
         if(roomId!=null) {
             if(!caller.getRoomIfExist(roomId))
             {
-                RoomSession room=new RoomSession(randomRoomId()
+                 room=new RoomSession(randomRoomId()
                         ,json.get("from").getAsString().concat(json.get("target").getAsString()),
                         userSessions);
             }
         }
         else
         {
-            RoomSession room=new RoomSession(randomRoomId()
+             room=new RoomSession(randomRoomId()
                     ,json.get("from").getAsString().concat(json.get("target").getAsString()),
                     userSessions);
         }
-        return roomSession;
+        return room;
     }
 
     public void createOffer(){

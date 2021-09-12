@@ -14,7 +14,8 @@ public class UserSession {
     private final WebSocketSession session;
     private List<RoomSession> roomSessions;
 
-    public UserSession(String id,String userName,WebSocketSession session) {
+
+    public UserSession(String id, String userName, WebSocketSession session) {
         this.session = session;
         this.id = id;
         this.userName = userName;

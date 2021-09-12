@@ -33,8 +33,22 @@ public class UserRegistry {
 
     public UserSession findUserByUserName(String name)
     {
-        return mapWebSocketUserName.get(name);
+
+         return mapWebSocketUserName.get(name);
+
     }
+
+    public Boolean isUserSessionExist(String name) {
+
+        if (mapWebSocketUserName.containsKey(name))
+            return true ;
+        else
+            return false ;
+
+    }
+
+
+
 
     public void addUserRegister(UserSession userSession){
         mapWebSocketSession.put(userSession.getSession().getId(),userSession);
